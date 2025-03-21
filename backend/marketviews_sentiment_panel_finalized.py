@@ -275,12 +275,33 @@ def get_wiki_data(mean_scores):
             return get_wiki_data(mean_scores)
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    # Find the table with the CSS class 'wikitable sortable' within the HTML content, the 'table' argument in soup.find() specifies that we are looking for an HTML table element, and the second argument {'class': 'wikitable sortable'} defines the attributes (in this case, the CSS class) that the table element should have in order to be considered a match.
-    table = soup.find('table', {'class': 'wikitable sortable'})
-    # Retrieve all the rows of table, excluding the first one which is header row. Table is a tag  of beautiful soup, and we can apply .findall() and it returns a list of tag object
-    rows = table.findAll('tr')[1:]
-    # To store the extracted tickers and sectors
+    # Find the table containing the tickers and sectors
+    tables = soup.find_all('table')
+
+    for idx, t in enumerate(tables):
+        headers = [th.get_text(strip=True) for th in t.find_all('th')]
+        print(f"Table #{idx} headers:", headers)
+
+    # Initialize the list here
     tickers_and_sectors = []
+    rows = None  # We'll assign rows inside the loop
+
+    for t in tables:
+        headers = [th.get_text(strip=True) for th in t.find_all('th')]
+        if 'Symbol' in headers:
+            # This is the correct table
+            rows = t.find_all('tr')[1:]
+            # parse as needed
+            break
+    # Retrieve all the rows of table, excluding the first one which is header row. Table is a tag  of beautiful soup, and we can apply .findall() and it returns a list of tag object
+    # rows = table.findAll('tr')[1:]
+    # To store the extracted tickers and sectors
+    # tickers_and_sectors = []
+
+    # If we never found a table with "Symbol", rows will still be None
+    if rows is None:
+        print("No table found with 'Symbol' in the header.")
+        return pd.DataFrame()
 
     # Iterate all rows/stocks
     for row in rows:
@@ -297,6 +318,10 @@ def get_wiki_data(mean_scores):
 
     # Convert list to dataframe
     tickers = pd.DataFrame(tickers_and_sectors, columns=['Ticker', 'Sector'])
+
+    # Print the unique Wikipedia tickers
+    print("Wikipedia Tickers:", tickers['Ticker'].unique())
+
 
     df = tickers.merge(mean_scores, on='Ticker')
     df = df.rename(columns={"compound": "Sentiment Score", "neg": "Negative", "neu": "Neutral", "pos": "Positive"})
@@ -321,8 +346,15 @@ def get_data_to_draw(debug):
     tickers = get_tickers(debug)
     news_tables = get_news_table(tickers)
     parsed_news = parse_news_table(news_tables)
+    # print("Parsed news length:", len(parsed_news))
+
     parsed_news_scores = sentiment_analysis(parsed_news)
+    # print("parsed_news_scores shape:", parsed_news_scores.shape)
+
     mean_scores = get_recent_data(parsed_news_scores)
+    # print("mean_scores shape:", mean_scores.shape)
+    print("Mean_Scores Tickers:", mean_scores['Ticker'].unique())
+
     grouped = get_wiki_data(mean_scores)
     top_5_each_sector, low_5_each_sector = get_top_five(grouped)
     return top_5_each_sector, low_5_each_sector
@@ -341,17 +373,45 @@ def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
 # For the most positive
 
     # Visualization attributes. Sectors serve as the root level of the treemap hierarchy. The color of each treemap cell based on the 'Sentiment Score' column
-    fig = px.treemap(top_5_each_sector, path=[px.Constant("Sectors"), 'Sector', 'Ticker'],
-                     color='Sentiment Score', hover_data=['Negative', 'Neutral', 'Positive', 'Sentiment Score'],
+    fig = px.treemap(top_5_each_sector, 
+                     path=[px.Constant("Sectors"), 'Sector', 'Ticker'],
+                     color='Sentiment Score', 
+                     hover_data=['Negative', 'Neutral', 'Positive', 'Sentiment Score'],
                      color_continuous_scale=['#FF0000', "#000000", '#00FF00'],
                      color_continuous_midpoint=0)
 
     # Customize the hover tooltip text
-    fig.data[0].customdata = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(
-        3)  # round to 3 decimal places
-    fig.data[0].texttemplate = "%{label}<br>%{customdata[3]}"
-    fig.update_traces(textposition="middle center")
+    fig.data[0].customdata = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3).to_numpy()  # round to 3 decimal places
+
+    # Check if the fourth element exists
+    # for row in fig.data[0].customdata:
+    #     if len(row) < 4:
+    #         print("Row with missing elements detected:", row)
+
+    # Convert to a list to prevent array indexing issues
+    # fig.data[0].customdata = np.round(
+    #     top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].to_numpy(), 3
+    # ).tolist()  
+
+    # Correct text template reference
+    # fig.data[0].texttemplate = "%{label}<br>Sentiment Score: %{customdata[3]}"
+
+    # fig.data[0].texttemplate = "%{label}<br>%{customdata[3]}"
+    # fig.update_traces(textposition="middle center")
+    # Force the trace to use your custom text
+    fig.update_traces(
+        textinfo="text",  # Only display text as defined by texttemplate
+        texttemplate="%{label}<br>%{customdata[3]}",
+        textposition="middle center"
+    )
     fig.update_layout(margin=dict(t=30, l=10, r=10, b=10), font_size=20)
+
+    # customdata_array = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3).to_numpy()
+
+    # # Print out the value in column index 3 (Sentiment Score) for each row
+    # print("Custom data (Sentiment Score) for each row:")
+    # for row in customdata_array:
+    #     print(row[3])
 
     # plotly.offline.plot(fig, filename='stock_sentiment.html') # this writes the plot into a html file and opens it
 

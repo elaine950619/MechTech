@@ -101,10 +101,16 @@ def register():
 def dashboard():
     # Call your data retrieval and treemap generation functions
     top5, low5 = get_data_to_draw(debug=True)
-    print("=== TOP 5 EACH SECTOR ===")
-    print(top5)
-    print("=== LOW 5 EACH SECTOR ===")
-    print(low5)
+    # print("=== TOP 5 EACH SECTOR ===")
+    # print(top5)
+    # print("=== LOW 5 EACH SECTOR ===")
+    # print(low5)
+
+    # Debug: Print each stock and its compound sentiment score from the positive group
+    print("=== Stock Sentiment Scores (Positive) ===")
+    for index, row in top5.iterrows():
+        print(f"Stock: {row['Ticker']}, Compound Sentiment Score: {row['Sentiment Score']}")
+        
     positive_json, negative_json = draw_sentiment_panel(top5, low5)
     return render_template('dashboard.html', positive_plot=positive_json, negative_plot=negative_json)
 
