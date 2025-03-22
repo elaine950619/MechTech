@@ -367,6 +367,9 @@ The first figure is for the top 5 of each sector, and the second figure is for t
 # Check the valid input
 
 
+
+
+
 def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
 
 
@@ -375,36 +378,30 @@ def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
     # Visualization attributes. Sectors serve as the root level of the treemap hierarchy. The color of each treemap cell based on the 'Sentiment Score' column
     fig = px.treemap(top_5_each_sector, 
                      path=[px.Constant("Sectors"), 'Sector', 'Ticker'],
+                     values='Sentiment Score',
                      color='Sentiment Score', 
                      hover_data=['Negative', 'Neutral', 'Positive', 'Sentiment Score'],
                      color_continuous_scale=['#FF0000', "#000000", '#00FF00'],
                      color_continuous_midpoint=0)
 
     # Customize the hover tooltip text
-    fig.data[0].customdata = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3).to_numpy()  # round to 3 decimal places
+    fig.data[0].customdata = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3).to_numpy().tolist()  # round to 3 decimal places
 
-    # Check if the fourth element exists
-    # for row in fig.data[0].customdata:
-    #     if len(row) < 4:
-    #         print("Row with missing elements detected:", row)
-
-    # Convert to a list to prevent array indexing issues
-    # fig.data[0].customdata = np.round(
-    #     top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].to_numpy(), 3
-    # ).tolist()  
-
-    # Correct text template reference
-    # fig.data[0].texttemplate = "%{label}<br>Sentiment Score: %{customdata[3]}"
-
-    # fig.data[0].texttemplate = "%{label}<br>%{customdata[3]}"
-    # fig.update_traces(textposition="middle center")
     # Force the trace to use your custom text
     fig.update_traces(
+        # selector=dict(type='treemap', level='leaf'),
         textinfo="text",  # Only display text as defined by texttemplate
         texttemplate="%{label}<br>%{customdata[3]}",
         textposition="middle center"
+        # color="%{customdata[3]}"
     )
+
+    print("hereeeeeeeeeeee")
+    print(top_5_each_sector['Sentiment Score'].dtype)
+
     fig.update_layout(margin=dict(t=30, l=10, r=10, b=10), font_size=20)
+
+    # positive_json = fig.to_json()
 
     # customdata_array = top_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3).to_numpy()
 
@@ -424,13 +421,15 @@ def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
                      color_continuous_midpoint=0)
 
     fig1.data[0].customdata = low_5_each_sector[['Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(
-        3)  # round to 3 decimal places
+        3).to_numpy().tolist()  # round to 3 decimal places
     fig1.data[0].texttemplate = "%{label}<br>%{customdata[3]}"
     fig1.update_traces(textposition="middle center")
     fig1.update_layout(margin=dict(t=30, l=10, r=10, b=10), font_size=20)
+    # fig.show() 
+    # fig1.show()
 
     # plotly.offline.plot(fig, filename='stock_sentiment.html') # this writes the plot into a html file and opens it
-    return fig.to_json(),fig1.to_json()
+    return fig.to_json(),fig1.to_json() 
 
 def store_json(fig1,fig2,now_time,absolute_path):
     with open(f"{absolute_path}Top5-{now_time}.json", 'w') as file:
