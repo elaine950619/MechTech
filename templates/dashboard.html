@@ -64,6 +64,7 @@
         // Initial render (positive treemap)
         renderTreemap(positiveData);
 
+        // Event listeners for sentiment buttons
         document.getElementById("positive-btn").addEventListener("click", function(){
           Plotly.newPlot('treemap', positiveData.data, positiveData.layout);
         });

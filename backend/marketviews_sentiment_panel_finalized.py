@@ -379,7 +379,8 @@ def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
     fig = px.treemap(top_5_each_sector, 
                      path=[px.Constant("Sectors"), 'Sector', 'Ticker'],
                      values='Sentiment Score',
-                     color='Sentiment Score', 
+                     color='Sentiment Score',
+                    #  range_color=[-1, 1],
                      hover_data=['Negative', 'Neutral', 'Positive', 'Sentiment Score'],
                      color_continuous_scale=['#FF0000', "#000000", '#00FF00'],
                      color_continuous_midpoint=0)
@@ -395,6 +396,9 @@ def draw_sentiment_panel(top_5_each_sector, low_5_each_sector):
         textposition="middle center"
         # color="%{customdata[3]}"
     )
+
+    # fig.data[0].values='Sentiment Score'
+    # fig.data[0].color='Sentiment Score'
 
     print("hereeeeeeeeeeee")
     print(top_5_each_sector['Sentiment Score'].dtype)
